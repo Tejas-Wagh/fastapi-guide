@@ -38,14 +38,15 @@ fastapi-blog/
 │   ├── authModels.py      # Pydantic models for authentication
 │   └── blogModels.py      # Pydantic models for blog operations
 ├── routers/
-│   ├── auth.py           # Authentication routes
-│   └── blog.py           # Blog CRUD routes
-├── database.py           # Database configuration and connection
-├── dbModels.py          # SQLAlchemy database models
+│   ├── auth.py           # Authentication routes (signup, signin, user management)
+│   └── blog.py           # Blog CRUD routes (create, read, update, delete)
+├── database.py           # Database configuration and SQLAlchemy setup
+├── dbModels.py          # SQLAlchemy database models (User, Blog tables)
 ├── main.py              # FastAPI application entry point
-├── utils.py             # Utility functions (JWT, dependencies)
+├── utils.py             # Utility functions (JWT token creation/validation)
 ├── .env.example         # Environment variables template
-└── pyproject.toml       # Project dependencies
+├── .env                 # Your actual environment variables (don't commit!)
+└── pyproject.toml       # Project dependencies and configuration
 ```
 
 ## Complete Setup Guide for Beginners
@@ -73,7 +74,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh  # Install UV first
 uv sync  # Install all dependencies
 
 # Option 2: Using regular pip
-pip install fastapi sqlalchemy psycopg2-binary python-jose[cryptography] passlib[bcrypt] python-dotenv
+pip install fastapi sqlalchemy psycopg2-binary python-jose[cryptography] passlib[bcrypt] python-dotenv uvicorn
 ```
 
 #### 3. Set Up Your Database
@@ -309,8 +310,13 @@ app.include_router(blog_router)  # Adds all blog routes
 ```python
 # These models automatically validate incoming data
 class BlogUpsert(BaseModel):
-    title: str  # Must be a string
-    content: str  # Must be a string
+    title: str = Field(min_length=3, max_length=30)  # Must be a string, 3-30 chars
+    content: str = Field(min_length=10, max_length=500)  # Must be a string, 10-500 chars
+    
+# For optional fields with validation, use Field(default=None, ...)
+class OptionalExample(BaseModel):
+    required_field: str = Field(min_length=1)
+    optional_field: Optional[str] = Field(default=None, min_length=3, max_length=30)
     
 # If someone sends invalid data, FastAPI automatically returns an error
 # No manual validation needed!
@@ -366,9 +372,11 @@ isort .  # Organizes imports
 - ❌ Don't commit your `.env` file to git
 - ❌ Don't use the same secret key in production
 - ❌ Don't forget to validate user input
+- ❌ Don't use `Field(...) | None` syntax for optional fields
 - ✅ Always hash passwords
 - ✅ Use environment variables for secrets
 - ✅ Let FastAPI handle validation for you
+- ✅ Use `Field(default=None, ...)` for optional Pydantic fields
 
 ## Environment Variables
 
@@ -414,6 +422,12 @@ A: Add them to both the SQLAlchemy model (database) and Pydantic model (API vali
 
 **Q: Why use JWT tokens instead of sessions?**
 A: JWT tokens are stateless, scalable, and work great with modern frontend frameworks.
+
+**Q: I get "TypeError: unsupported operand type(s) for |" error**
+A: Use `Field(default=None, ...)` instead of `Field(...) | None` for optional fields in Pydantic models.
+
+**Q: How do I fix import errors?**
+A: Make sure all dependencies are installed and there are no circular imports between modules.
 
 ### Getting Help
 - Create an issue in this repository

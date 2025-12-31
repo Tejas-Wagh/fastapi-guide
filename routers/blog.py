@@ -1,9 +1,9 @@
 from fastapi import APIRouter, HTTPException, status as status_code
-from models.blogModels import BlogUpsert, BlogResponse
+from models.blogModels import BlogUpsert, BlogResponse, GenerateBlog
 from dbModels import Blog
 from starlette import status
 from database import db_dependency
-from utils import user_dependency
+from utils import user_dependency, generateBlog
 
 router = APIRouter(
     tags=["blogs"]
@@ -78,4 +78,25 @@ def delete_blog(blog_id:int, db:db_dependency, user:user_dependency):
 
     return {
         "message":"blog deleted"
+    }
+
+
+@router.post("/blog/generate", status_code=status.HTTP_201_CREATED)
+def generate_blog(blog_details:GenerateBlog,db:db_dependency, user:user_dependency):
+    if not user:
+        raise HTTPException(status_code=status_code.HTTP_401_UNAUTHORIZED, detail="Unauthorized user!")
+    
+    blog = generateBlog(blog_details)
+
+    newBlog = Blog(
+        title=blog_details.title,
+        content=blog,
+        user_id=user.get("id")
+    )
+
+    db.add(newBlog)
+    db.commit()
+    
+    return {
+        "message":"blog created!"
     }
